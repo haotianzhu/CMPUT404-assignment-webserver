@@ -104,13 +104,15 @@ class MyWebServer(socketserver.BaseRequestHandler):
         response_dict = init_respone_dict()
         self.data = self.request.recv(1024).strip()
         data_string = self.data.decode('utf-8')
-        method, location = get_request_info(data_string)
+        try:
+            method, location = get_request_info(data_string)
 
-        content_string = location_controller(location, response_dict, method)
-        response_string = generate_reponse(response_dict)
-        send_data = (str(response_string)+'\r\n'+str(content_string))
-        self.request.sendall(bytearray(send_data,'utf-8'))
-        
+            content_string = location_controller(location, response_dict, method)
+            response_string = generate_reponse(response_dict)
+            send_data = (str(response_string)+'\r\n'+str(content_string))
+            self.request.sendall(bytearray(send_data,'utf-8'))
+        except :
+            pass
 
 
 

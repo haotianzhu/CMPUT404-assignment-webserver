@@ -109,7 +109,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
         content_string = location_controller(location, response_dict, method)
         response_string = generate_reponse(response_dict)
         send_data = (str(response_string)+'\r\n'+str(content_string))
-        print(send_data)
         self.request.sendall(bytearray(send_data,'utf-8'))
         
 

@@ -26,27 +26,13 @@ import socketserver
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 
-def init_respone_dict():
-    d = {}
-    from datetime import datetime
-    d['HTTP/1.1'] = '200 OK'
-    d['Content-Type'] = 'text/html'
-    d['Connection'] = 'Closed'
-    d['Date'] = str(datetime.now())
-    return d
-
-def generate_reponse(respone_dict):
-    data_string = ''
-    for k,v in respone_dict.items():
-        data_string += (k+': '+v+'\r\n')
-    return data_string
 
 def get_request_info(data_string):
     # return method address
     return data_string.split()[0:2]
 
 
-def location_controller(location, respone_dict, method):
+def location_controller(location, method):
     import os
     if method != 'GET':
         respone_dict['HTTP/1.1'] = '405 Method Not Allowed'
@@ -70,24 +56,28 @@ def location_controller(location, respone_dict, method):
         if abs_location[-1] == '/':
             abs_location += 'index.html'
         else:
-            abs_location += '/index.html'
+            abs_location = location + '/'
+
+            head = 'HTTP/1.1: 301 Moved Permanently\r\nContent-Type: text/css\r\nConnection: Closed\r\n'
+            return head +'Location: '+str(abs_location)+'\r\n\n'
+
 
     if os.path.isfile(abs_location):
         if '.css' in abs_location:
             # update css
-            respone_dict['Content-Type'] = 'text/css'
-            respone_dict['Connection'] = 'Closed'
+            head = 'HTTP/1.1: 200 OK\r\nContent-Type: text/css\r\nConnection: Closed\r\n\n'
             with open(abs_location,'r', encoding="utf8") as f:
-                return f.read()
+                return head + f.read()
         elif '.html' in abs_location:
-            respone_dict['Content-Type'] = 'text/html'
-            respone_dict['Connection'] = 'Closed'
+            head = 'HTTP/1.1: 200 OK\r\nContent-Type: text/html\r\nConnection: Closed\r\n\n'
             with open(abs_location,'r', encoding="utf8") as f:
-                return f.read()
+                return  head + f.read()
         
     # 404
-    respone_dict['HTTP/1.1'] = '404 Not FOUND'
-    return '''
+    return '''HTTP/1.1: 404 Not FOUND\r
+Content-Type: text/html\r
+Connection: Closed\r\n
+
 <html>
 <head>
 <title>404 Not Found</title>
@@ -101,18 +91,16 @@ def location_controller(location, respone_dict, method):
 class MyWebServer(socketserver.BaseRequestHandler):
     
     def handle(self):
-        response_dict = init_respone_dict()
+
         self.data = self.request.recv(1024).strip()
         data_string = self.data.decode('utf-8')
-        try:
-            method, location = get_request_info(data_string)
+    
+        method, location = get_request_info(data_string)
 
-            content_string = location_controller(location, response_dict, method)
-            response_string = generate_reponse(response_dict)
-            send_data = (str(response_string)+'\r\n'+str(content_string))
-            self.request.sendall(bytearray(send_data,'utf-8'))
-        except :
-            pass
+        send_data = location_controller(location, method)
+
+        self.request.sendall(bytearray(send_data,'utf-8'))
+
 
 
 
